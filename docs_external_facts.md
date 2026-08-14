@@ -14,3 +14,15 @@ The upstream installer is Termux-aware and uses Python's stdlib venv plus pip on
 Source: https://github.com/termux/termux-packages/releases
 
 The latest release observed in the current session is `bootstrap-2026.08.09-r1+apt.android-7`. The releases page contains the ARM64 asset `bootstrap-aarch64.zip` under each bootstrap release. CI should resolve the latest release through the GitHub API, download the asset, verify a checksum when available, and place it at `android/app/src/main/assets/bootstrap-aarch64.zip` before Gradle packaging.
+
+## Bootstrap symlink format observed locally
+
+The downloaded official archive `bootstrap-2026.08.09-r1+apt.android-7/bootstrap-aarch64.zip` contains a top-level `SYMLINKS.txt`. Its records use the Unicode left-arrow separator, for example:
+
+```text
+libxxhash.so.0.8.3←./lib/libxxhash.so
+libcrypto.so.3←./lib/libcrypto.so
+../share/terminfo←./lib/terminfo
+```
+
+The archive entries themselves are ordinary files/directories and do not preserve usable Android symlink metadata. The installer must therefore read `SYMLINKS.txt`, interpret the left side as the link path and the right side as the target path, normalize both relative to the extracted prefix, and call `android.system.Os.symlink(target, link)` after regular entries have been extracted. It must also support the alternate encoded separator `SYMLINK→` and reject paths escaping the prefix.

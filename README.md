@@ -62,3 +62,11 @@ The activity deliberately loads `file:///android_asset/web/index.html` rather th
 The CI workflow resolves the latest `bootstrap-aarch64.zip` from the official Termux packages release API, downloads it into the Android assets directory, and packages it into the APK. The local helper `scripts/fetch-latest-bootstrap.py` performs the same operation for an end-to-end build test. The current verified release is `bootstrap-2026.08.09-r1+apt.android-7`.
 
 After extraction, the Android runtime attempts the documented Hermes Termux path: it installs Python, Git, Clang, Rust, Make, pkg-config, libffi, OpenSSL, Node.js, ripgrep, and ffmpeg; clones the upstream Hermes repository; creates a venv; sets `ANDROID_API_LEVEL`; installs `.[termux]` with `constraints-termux.txt`; and links `venv/bin/hermes` to the private prefix. The foreground supervisor then starts the documented `hermes gateway` process. Missing credentials, unsupported Android packages, or network failures are surfaced in `/api/status` while the local status page remains available.
+
+## v0.3.0 runtime and settings fixes
+
+Version 0.3.0 restores the Termux bootstrap symlinks from `SYMLINKS.txt`. The official archive uses records such as `libxxhash.so.0.8.3←./lib/libxxhash.so`, where the target is resolved relative to the link parent. The installer also detects the alternate `SYMLINK→target` tiny-file encoding, validates that paths remain inside the private prefix, calls Android `Os.symlink()`, and normalizes executable permissions after extraction.
+
+Installation output is appended to `files/home/hermes_install.log` and is returned, together with the complete failure message, by `GET /api/status`. The WebView displays this diagnostic in an expandable error area rather than only showing an exit code.
+
+The Settings button opens a local configuration panel. API key, base URL, and model are sent to `POST /api/config` and persisted as `files/home/hermes-config.json`; `GET /api/config` reloads them on startup. This file is private to the application sandbox. API keys are not written to the installation log.

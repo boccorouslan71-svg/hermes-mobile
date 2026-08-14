@@ -14,7 +14,7 @@ class HermesProcessSupervisor(private val context: Context) {
     fun start() {
         // Bind the HTTP server first. The UI polls it while Linux dependencies
         // and Hermes are being provisioned asynchronously.
-        val localServer = HermesLocalServer(context, installer.prefix, installer.home, installer.tmp)
+        val localServer = HermesLocalServer(context, installer.prefix, installer.home, installer.tmp, installer)
         server = localServer
         localServer.start()
         executor.execute {

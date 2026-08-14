@@ -17,6 +17,11 @@ checks = {
     'gateway launch': 'runHermes(listOf("gateway"))' in supervisor,
     'CI downloads bootstrap': 'api.github.com/repos/termux/termux-packages/releases/latest' in workflow and 'bootstrap-aarch64.zip' in workflow,
     'CI builds APK': 'assembleDebug' in workflow,
+    'SYMLINKS manifest support': 'SYMLINKS.txt' in installer and 'Os.symlink' in installer and '←' in installer,
+    'encoded symlink support': 'SYMLINK→' in installer,
+    'persistent config endpoint': 'GET' in server and '/api/config' in server and 'hermes-config.json' in server,
+    'settings UI': 'settingsButton' in html and 'apiKey' in html and 'saveSettings' in html,
+    'full install log endpoint': 'installLog' in server and 'installLogFile' in installer,
 }
 failed = [name for name, passed in checks.items() if not passed]
 for name, passed in checks.items():
