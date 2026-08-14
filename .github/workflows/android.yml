@@ -1,0 +1,54 @@
+name: Android APK
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android platform and build tools
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Prepare deterministic assets
+        run: |
+          chmod +x scripts/build-bootstrap.sh
+          if [ -n "${BOOTSTRAP_SHA256:-}" ]; then ./scripts/build-bootstrap.sh; else echo 'Bootstrap archive must be provided by a pinned release asset in production'; fi
+        env:
+          BOOTSTRAP_URL: ${{ vars.HERMES_BOOTSTRAP_URL }}
+          BOOTSTRAP_SHA256: ${{ vars.HERMES_BOOTSTRAP_SHA256 }}
+
+      - name: Build debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug --stacktrace
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hermes-mobile-debug
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Publish GitHub release for tag
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: android/app/build/outputs/apk/debug/app-debug.apk

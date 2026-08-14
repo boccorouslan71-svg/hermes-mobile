@@ -1,0 +1,13 @@
+*.iml
+.gradle
+/local.properties
+/.idea
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+android/app/build/
+android/local.properties
+android/app/src/main/assets/bootstrap-aarch64.zip
+android/app/src/main/assets/hermes/
