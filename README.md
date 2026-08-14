@@ -54,3 +54,11 @@ The local server is HTTP over loopback because Android WebView needs a local tra
 ## License
 
 The Android shell and integration code in this repository is released under the MIT License. Hermes Agent remains under its upstream license and must be included or distributed according to the [NousResearch repository](https://github.com/NousResearch/hermes-agent).
+
+## Startup and troubleshooting
+
+The activity deliberately loads `file:///android_asset/web/index.html` rather than navigating directly to localhost. The page is therefore visible immediately and polls `http://127.0.0.1:18923/api/status` every two seconds. `HermesLocalServer` binds before the asynchronous bootstrap and Hermes installation begins, so a slow or failed package installation cannot produce `ERR_CONNECTION_REFUSED`.
+
+The CI workflow resolves the latest `bootstrap-aarch64.zip` from the official Termux packages release API, downloads it into the Android assets directory, and packages it into the APK. The local helper `scripts/fetch-latest-bootstrap.py` performs the same operation for an end-to-end build test. The current verified release is `bootstrap-2026.08.09-r1+apt.android-7`.
+
+After extraction, the Android runtime attempts the documented Hermes Termux path: it installs Python, Git, Clang, Rust, Make, pkg-config, libffi, OpenSSL, Node.js, ripgrep, and ffmpeg; clones the upstream Hermes repository; creates a venv; sets `ANDROID_API_LEVEL`; installs `.[termux]` with `constraints-termux.txt`; and links `venv/bin/hermes` to the private prefix. The foreground supervisor then starts the documented `hermes gateway` process. Missing credentials, unsupported Android packages, or network failures are surfaced in `/api/status` while the local status page remains available.

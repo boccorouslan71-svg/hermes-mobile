@@ -2,6 +2,7 @@ package com.hermesmobile
 
 import android.content.Intent
 import android.os.Bundle
+import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.appcompat.app.AppCompatActivity
@@ -20,12 +21,15 @@ class MainActivity : AppCompatActivity() {
         webView = WebView(this).apply {
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true
-            settings.allowFileAccess = false
+            settings.allowFileAccess = true
             settings.allowContentAccess = false
+            settings.cacheMode = WebSettings.LOAD_NO_CACHE
             webViewClient = WebViewClient()
         }
         setContentView(webView)
-        webView.loadUrl("http://127.0.0.1:18923/")
+        // The bundled page is available immediately. It polls localhost until
+        // HermesLocalServer is ready, avoiding ERR_CONNECTION_REFUSED on launch.
+        webView.loadUrl("file:///android_asset/web/index.html")
     }
 
     override fun onDestroy() {

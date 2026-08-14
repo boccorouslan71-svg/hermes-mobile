@@ -28,13 +28,28 @@ jobs:
       - name: Install Android platform and build tools
         run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
 
-      - name: Prepare deterministic assets
+      - name: Download latest Termux ARM64 bootstrap
+        shell: bash
         run: |
-          chmod +x scripts/build-bootstrap.sh
-          if [ -n "${BOOTSTRAP_SHA256:-}" ]; then ./scripts/build-bootstrap.sh; else echo 'Bootstrap archive must be provided by a pinned release asset in production'; fi
-        env:
-          BOOTSTRAP_URL: ${{ vars.HERMES_BOOTSTRAP_URL }}
-          BOOTSTRAP_SHA256: ${{ vars.HERMES_BOOTSTRAP_SHA256 }}
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, pathlib, urllib.request
+          api = 'https://api.github.com/repos/termux/termux-packages/releases/latest'
+          req = urllib.request.Request(api, headers={'Accept': 'application/vnd.github+json', 'User-Agent': 'hermes-mobile-ci'})
+          with urllib.request.urlopen(req) as response:
+              release = json.load(response)
+          assets = [a for a in release.get('assets', []) if a['name'] == 'bootstrap-aarch64.zip']
+          if not assets:
+              raise SystemExit(f"No bootstrap-aarch64.zip in {release.get('tag_name')}")
+          asset = assets[0]
+          pathlib.Path('/tmp/bootstrap-url').write_text(asset['browser_download_url'])
+          pathlib.Path('/tmp/bootstrap-version').write_text(release.get('tag_name', 'unknown'))
+          print(f"Using {release.get('tag_name')}: {asset['browser_download_url']}")
+          PY
+          mkdir -p android/app/src/main/assets
+          curl --fail --location --retry 3 "$(cat /tmp/bootstrap-url)" -o android/app/src/main/assets/bootstrap-aarch64.zip
+          sha256sum android/app/src/main/assets/bootstrap-aarch64.zip | tee android/app/src/main/assets/bootstrap-aarch64.zip.sha256
+          printf 'termux_bootstrap=%s\n' "$(cat /tmp/bootstrap-version)" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Build debug APK
         working-directory: android
@@ -51,4 +66,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
-          files: android/app/build/outputs/apk/debug/app-debug.apk
+          files: |
+            android/app/build/outputs/apk/debug/app-debug.apk
+            android/app/src/main/assets/bootstrap-aarch64.zip.sha256
